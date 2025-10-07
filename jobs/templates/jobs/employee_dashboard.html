@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7fafc; }
+        .status-applied { background-color: #bfdbfe; color: #1e40af; }
+        .status-shortlisted { background-color: #fde68a; color: #b45309; }
+        .status-interview { background-color: #a7f3d0; color: #065f46; }
+        .status-rejected { background-color: #fecaca; color: #991b1b; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <!-- Header -->
+    <header class="max-w-7xl mx-auto mb-8 bg-white p-6 rounded-xl shadow-xl border-t-4 border-green-600">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-900">
+                    💼 Job Seeker Dashboard
+                </h1>
+                <p class="text-lg text-gray-500">Welcome, {{ user.username }} (Employee)</p>
+            </div>
+            <form method="post" action="{% url 'logout' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-150 shadow-md">
+                    Logout
+                </button>
+            </form>
+        </div>
+        
+        <!-- Profile Status -->
+        <div class="mt-4 p-4 border rounded-lg flex justify-between items-center bg-gray-50">
+            {% if seeker_profile.resume %}
+                <span class="text-green-600 font-semibold flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Resume Uploaded (Ready to Apply!)
+                </span>
+            {% else %}
+                <span class="text-yellow-600 font-semibold flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Resume Missing! Upload to apply for jobs.
+                </span>
+            {% endif %}
+            <a href="{% url 'upload_resume' %}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                Update Resume/Skills
+            </a>
+        </div>
+    </header>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="max-w-7xl mx-auto mb-6">
+            {% for message in messages %}
+            <div class="p-3 mb-2 rounded-lg text-sm font-medium {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto space-y-8">
+        
+        <!-- Tab: My Applications -->
+        <section>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">My Job Applications ({{ applications|length }})</h2>
+            <div class="table-responsive overflow-x-auto bg-white p-6 rounded-xl shadow-lg">
+                {% if applications %}
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for app in applications %}
+                        <tr>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ app.job.title }} ({{ app.job.location }})
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-{{ app.status|lower }}">
+                                    {{ app.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.applied_on|date:"M d, Y" }}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if app.status == 'INTERVIEW' and app.interview %}
+                                    <p class="font-semibold text-blue-600">Interview Scheduled:</p>
+                                    <p class="text-xs">{{ app.interview.scheduled_time|date:"M d, Y, H:i" }}</p>
+                                    <p class="text-xs">Link: <a href="{{ app.interview.location_link }}" target="_blank" class="text-indigo-500 hover:underline">Click Here</a></p>
+                                {% else %}
+                                    <p>No interview set.</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-gray-500 italic">You haven't applied for any jobs yet.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Tab: All Active Jobs -->
+        <section>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Active Job Openings ({{ jobs|length }})</h2>
+            <div class="space-y-6">
+                {% for job in jobs %}
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-l-4 border-indigo-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-xl font-semibold text-gray-900">{{ job.title }}</h3>
+                        <span class="text-sm font-medium text-white bg-indigo-600 px-3 py-1 rounded-full shadow-md">
+                            {{ job.location }}
+                        </span>
+                    </div>
+                    
+                    <p class="text-sm text-gray-500 mb-3">
+                        Posted by: <span class="font-medium text-gray-700">{{ job.employer.company_name }}</span> 
+                        on {{ job.posted_on|date:"M d, Y" }}
+                    </p>
+
+                    <p class="text-gray-700 mb-4">{{ job.description|truncatechars:150 }}</p>
+
+                    <div class="mt-4">
+                        {% if job.id in applied_job_ids %}
+                            <span class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg">
+                                Already Applied
+                            </span>
+                        {% else %}
+                            <a href="{% url 'apply_for_job' job.id %}" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-150 shadow-md">
+                                Apply Now
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg" role="alert">
+                    <p class="font-bold">No Jobs Found</p>
+                    <p>There are currently no active job postings.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>
